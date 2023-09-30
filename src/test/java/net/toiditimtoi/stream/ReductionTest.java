@@ -11,10 +11,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ReductionTest {
-    
+
+    private final List<String> provinces = List.of("Nghe An", "Ha Noi", "Ninh Binh", "Thanh Hoa", "Nam Dinh");
+
     @Test
     public void minTest() {
-        var provinces = List.of("Nghe An", "Ha Noi", "Ninh Binh", "Thanh Hoa", "Nam Dinh");
         Optional<String> longestName = provinces.stream().max(Comparator.comparing(String::length));
         assertEquals("Ninh Binh", longestName.orElse(null));
 
@@ -24,7 +25,6 @@ public class ReductionTest {
 
     @Test
     public void findFirstTest() {
-        var provinces = List.of("Nghe An", "Ha Noi", "Ninh Binh", "Thanh Hoa", "Nam Dinh");
         var firstProvinceStartsWithN = provinces
                 .stream()
                 .filter(s -> s.startsWith("N"))
@@ -36,7 +36,6 @@ public class ReductionTest {
 
     @Test
     public void findAllTest() {
-        var provinces = List.of("Nghe An", "Ha Noi", "Ninh Binh", "Thanh Hoa", "Nam Dinh");
         var aRandomlySelectedProvincesStartsWithN = provinces
                 .stream()
                 .filter(s -> s.startsWith("N"))
@@ -49,14 +48,12 @@ public class ReductionTest {
 
     @Test
     public void anyMatchTest() {
-        var provinces = List.of("Nghe An", "Ha Noi", "Ninh Binh", "Thanh Hoa", "Nam Dinh");
         var anyStartsWithT = provinces.stream().anyMatch(s -> s.startsWith("T"));
         assertTrue(anyStartsWithT);
     }
 
     @Test
     public void noneMatchTest() {
-        var provinces = List.of("Nghe An", "Ha Noi", "Ninh Binh", "Thanh Hoa", "Nam Dinh");
         assertTrue(provinces.stream().noneMatch(s -> s.length() > 100));
 
         var empty = Stream.<String>empty();
@@ -65,7 +62,6 @@ public class ReductionTest {
 
     @Test
     public void allMatchTest() {
-        var provinces = List.of("Nghe An", "Ha Noi", "Ninh Binh", "Thanh Hoa", "Nam Dinh");
         assertTrue(provinces.stream().allMatch(s -> s.length() > 1));
 
         // an empty stream is special, it always return allMatch a true result
@@ -75,7 +71,6 @@ public class ReductionTest {
 
     @Test
     public void collectingResultUsingIteratorTest() {
-        var provinces = List.of("Nghe An", "Ha Noi", "Ninh Binh", "Thanh Hoa", "Nam Dinh");
         var iterator = provinces
                 .stream()
                 .filter(s -> s.length() > 6)
@@ -88,7 +83,6 @@ public class ReductionTest {
 
     @Test
     public void forEachOrdered() {
-        var provinces = List.of("Nghe An", "Ha Noi", "Ninh Binh", "Thanh Hoa", "Nam Dinh");
         provinces.parallelStream()
                 .filter(s -> s.length() > 6)
                 .forEach(System.out::println); // the strings are printed in arbitrary order
@@ -96,7 +90,36 @@ public class ReductionTest {
         provinces.parallelStream()
                 .filter(s -> s.length() > 6)
                 .forEachOrdered(System.out::println);
+    }
 
+    // calculate total length of all province names
+    @Test
+    public void sumAsReduction() {
+        var totalLength = provinces.stream()
+                .map(String::length)
+                .reduce(0, (s1, s2) -> s1 + s2);
+
+        var totalLength2 = provinces.stream()
+                .map(String::length)
+                .reduce(Integer::sum);
+
+        /**
+         * Think about this like this, when we have a stream of type A, but we want a reduction result of type B
+         * In this case, the usual reduce will not work because it requires that the reduce result and the stream element
+         * type are the same.
+         * This version of reduce with 3 parameters provide a solution for that.
+         * an identity value
+         * an accumulator function that incorporate the next element into the result
+         * (calculatedVal, nextEle) -> { }
+         * Finally, the combiner that combines two values. It's easier to imagine if you think about it in a parallel stream. We need to combine the
+         * temporary results to get the final one.
+         */
+        var totalLengthWithoutMap = provinces.stream()
+                .reduce(
+                        0,
+                        (sub1, anotherString) -> sub1 + anotherString.length(),
+                        Integer::sum
+                );
     }
 
 }
